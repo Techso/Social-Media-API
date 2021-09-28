@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema({
 	password: { type: String, default: null, required: true },
 	token: { type: String },
 	hobbies: { type: Array, default: null },
+	role: { type: String, default: "user" },
 });
 
 module.exports = mongoose.model("users", userSchema);
