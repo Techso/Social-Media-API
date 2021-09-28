@@ -2,8 +2,6 @@ const User = require("../model/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-const config = process.env;
-//const user = require("../model/user");
 exports.Register = async (req, res) => {
 	try {
 		const { firstName, lastName, displayName, email, password } = req.body;
@@ -37,7 +35,10 @@ exports.Register = async (req, res) => {
 
 		user.token = token;
 
-		res.status(201).json(user);
+		res.status(201).json({
+			success: "Post updated successfully",
+			data: user,
+		});
 	} catch (error) {
 		console.log("Oops!! We encountered an error!");
 		console.log(error);
@@ -66,7 +67,10 @@ exports.Login = async (req, res) => {
 
 				existingUser.token = token;
 
-				res.status(200).json(existingUser);
+				res.status(200).json({
+					success: "Post updated successfully",
+					data: existingUser,
+				});
 			} else {
 				res.status(400).send(`Incorrect password for user ${email}.`);
 			}
@@ -81,6 +85,39 @@ exports.Login = async (req, res) => {
 	}
 };
 
+exports.FetchProfile = async (req, res) => {
+	const token =
+		req.body.token || req.query.token || req.headers["x-access-token"];
+
+	if (!token) {
+		return res.status(403).send("A token is required for authentication");
+	}
+	try {
+		const decodedToken = jwt.verify(token, process.env.TOKEN_KEY);
+		req.user = decodedToken;
+
+		const email = req.body;
+
+		if (!email) {
+			res.status(400).send("All fields are required");
+		}
+		const existingUser = User.findOne({ email });
+
+		if (existingUser) {
+			res.status(200).send({
+				success: "Profile fetched successfully",
+				data: existingUser,
+			});
+		} else {
+			res.status(404).send({
+				success: "Profile does not exist",
+			});
+		}
+	} catch (error) {
+		return res.status(401).send(error);
+	}
+};
+
 exports.UpdateProfile = async (req, res) => {
 	const token =
 		req.body.token || req.query.token || req.headers["x-access-token"];
@@ -89,7 +126,7 @@ exports.UpdateProfile = async (req, res) => {
 		return res.status(403).send("A token is required for authentication");
 	}
 	try {
-		const decodedToken = jwt.verify(token, config.TOKEN_KEY);
+		const decodedToken = jwt.verify(token, process.env.TOKEN_KEY);
 		req.user = decodedToken;
 
 		const { firstName, lastName, displayName, email } = req.body;
@@ -99,7 +136,7 @@ exports.UpdateProfile = async (req, res) => {
 		}
 		const existingUser = User.findOne({ email });
 
-		await existingUser.updateOne(
+		const user = await existingUser.updateOne(
 			{
 				email: email,
 			},
@@ -111,7 +148,9 @@ exports.UpdateProfile = async (req, res) => {
 			}
 		);
 
-		res.status(200).send("Profile update successfully");
+		res.status(200).send({
+			success: "Profile updated successfully",
+		});
 	} catch (error) {
 		return res.status(401).send(error);
 	}
